@@ -1,4 +1,5 @@
 from discord.ext.commands import Bot
+from discord.ext.commands import is_owner
 from discord import Intents
 from settings import TOKEN
 
@@ -15,12 +16,20 @@ class Livefreeandlove(Bot):
         for extension in EXTENSIONS:
             await self.load_extension(f'extensions.{extension}')
 
+bot = Livefreeandlove()
+
+@bot.command()
+@is_owner()
+async def sync(ctx):
+    msg = await ctx.send("Syncing!")
+    await bot.tree.sync()
+    await msg.edit(content="Done!")
 
 
 
 
 def main():
-    bot = Livefreeandlove()
+    
     bot.run(TOKEN)
 
 

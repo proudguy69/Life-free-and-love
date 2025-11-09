@@ -14,8 +14,8 @@ role_ids = {
 
 async def update_queue_embed(member:Member):
     guild = member.guild
-    males = queue.count_documents({'gender': 'male', 'status': 'in_queue'})
-    females = queue.count_documents({'gender': 'female', 'status': 'in_queue'})
+    males = await queue.count_documents({'gender': 'male', 'status': 'in_queue'})
+    females = await queue.count_documents({'gender': 'female', 'status': 'in_queue'})
     queue_embed = Embed(title="Queue", description=f"Males: `{males}`\nFemales: `{females}`")
     channel = guild.get_channel(QUEUE_CHANNEL)
     await channel.purge()
@@ -31,7 +31,7 @@ async def send_entry(member:Member):
 
 
 async def activate(member:Member):
-    activate_user(member)
+    await activate_user(member)
     guild = member.guild
     active_role = guild.get_role(active_role_id)
     inactive_role = guild.get_role(inactive_role_id)
@@ -44,8 +44,8 @@ async def activate(member:Member):
 async def push_queue(member:Member, gender):
     await put_in_queue(member, gender)
     guild = member.guild
-    male = queue.find_one({"gender": "male", "status": "in_queue"}, sort=[("queued_at", ASCENDING)])
-    female = queue.find_one({"gender": "female", "status": "in_queue"}, sort=[("queued_at", ASCENDING)])
+    male = await queue.find_one({"gender": "male", "status": "in_queue"}, sort=[("queued_at", ASCENDING)])
+    female = await queue.find_one({"gender": "female", "status": "in_queue"}, sort=[("queued_at", ASCENDING)])
     if not male or not female:
         return
     male_user = guild.get_member(male['user_id'])
@@ -55,7 +55,7 @@ async def push_queue(member:Member, gender):
 
 
 async def put_in_queue(member:Member, gender:str):
-    add_to_queue(member, gender)
+    await add_to_queue(member, gender)
     guild = member.guild
     in_queue = guild.get_role(in_queue_id)
     inactive = guild.get_role(inactive_role_id)
@@ -68,7 +68,6 @@ async def put_in_queue(member:Member, gender:str):
 
 class Verifcation(Cog):
 
-    @Cog.listener('on_member_join')
     async def member_joined(self, member:Member):
         # disable access to all other channels
         guild = member.guild
@@ -94,6 +93,21 @@ class Verifcation(Cog):
         await chan.send(content=f"{member.mention} <@&1436753953399247051>", embed=verifcation_embed)
 
 
+    @Cog.listener('on_member_join')
+    async def on_member_joined(self, member:Member):
+       await self.member_joined(member)
+
+
+    @app_command()
+    async def simulate_entry(self, interaction:Interaction, member:Member):
+        guild = interaction.guild
+        in_queue = guild.get_role(in_queue_id)
+        inactive = guild.get_role(inactive_role_id)
+        active = guild.get_role(active_role_id)
+        await member.remove_roles(in_queue, inactive, active)
+        await self.member_joined(member)
+        await interaction.response.send_message("Done", ephemeral=True)
+        
 
     @app_command()
     async def verify(self, interaction:Interaction, member:Member):
@@ -110,8 +124,8 @@ class Verifcation(Cog):
             await interaction.followup.send("User bypassed queue due to not being straight lol")
             return
 
-        males = queue.count_documents({'gender': 'male', 'status': 'active'})
-        females = queue.count_documents({'gender': 'female', 'status': 'active'})
+        males = await queue.count_documents({'gender': 'male', 'status': 'active'})
+        females = await queue.count_documents({'gender': 'female', 'status': 'active'})
 
         if role_ids['male'] in user_roles:
             
